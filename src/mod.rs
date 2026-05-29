@@ -38,7 +38,8 @@ pub mod sha;
 
 // Re-exports for convenient access
 pub use rc4::Rc4;
-pub use rsa::verify_signature;
+pub use rsa::{ExCryptRsa, ExCryptRsaPrv1024, ExCryptRsaPub1024, ExCryptRsaPub2048};
+pub use rsa::{rsa_prv_crypt, rsa_pub_crypt, pkcs1_format, pkcs1_verify, sign_pkcs1v15_sha1, verify_pkcs1v15_sha1};
 pub use sha::{calculate_smc_hash, hmac_sha, rot_sum_sha, sha};
 
 pub type Result<T> = std::result::Result<T, CryptoError>;
@@ -71,9 +72,13 @@ pub unsafe fn ffi_slice_mut<'a>(ptr: *mut u8, len: u32) -> &'a mut [u8] {
     }
 }
 
+/// Swap dword/qword endianness (LE <-> BE)
 #[no_mangle]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn ExCryptBnQw_SwapDwQwLeBe(source: *const u64, dest: *mut u64, num_qwords: u32) {
+    if source.is_null() || dest.is_null() {
+        return;
+    }
     let src = std::slice::from_raw_parts(source, num_qwords as usize);
     let dst = std::slice::from_raw_parts_mut(dest, num_qwords as usize);
     for i in 0..num_qwords as usize {
@@ -81,10 +86,12 @@ pub unsafe extern "C" fn ExCryptBnQw_SwapDwQwLeBe(source: *const u64, dest: *mut
     }
 }
 
+/// Compare two memory regions and return 0 if equal, non-zero if different
+/// Used for constant-time comparison to avoid timing attacks
 #[no_mangle]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn ExCryptMemDiff(buf1: *const u8, buf2: *const u8, size: u32) -> i32 {
-    if size == 0 {
+    if buf1.is_null() || buf2.is_null() || size == 0 {
         return 0;
     }
     let a = std::slice::from_raw_parts(buf1, size as usize);

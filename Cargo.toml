@@ -25,6 +25,10 @@ name = "gxcrypt"
 version = "0.0.1"
 edition = "2021"
 
+[lib]
+name = "gxcrypt"
+path = "src/mod.rs"
+
 [dependencies]
 thiserror = "1.0"
 anyhow = "1.0"
@@ -32,5 +36,5 @@ crc32fast = "1.4"
 zerocopy = { version = "0.8.3", features = ["derive"] }
 byteorder = "1.5.0"
 sha1 = "0.10"
-openssl = { version = "0.10", features = ["vendored"] }
+rsa = "0.9.10"
 xecrypt = { path = "./crates/xecrypt" }

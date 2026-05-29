@@ -31,12 +31,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 use super::{CryptoError, Result};
-use crate::crypto::rc4::{ExCryptRc4, ExCryptRc4Ecb, ExCryptRc4Key, ExCryptRc4State};
-use crate::crypto::rsa::{
-    ExCryptBnDwLePkcs1Format, ExCryptBnDwLePkcs1Verify, ExCryptBnQwNeRsaPrvCrypt, ExCryptBnQwNeRsaPubCrypt, ExCryptRsa, ExCryptRsaPrv1024, ExCryptRsaPub1024,
+use crate::rc4::{ExCryptRc4, ExCryptRc4Ecb, ExCryptRc4Key, ExCryptRc4State};
+use crate::rsa::{
+    ExCryptRsa, ExCryptRsaPrv1024, ExCryptRsaPub1024,
+    pkcs1_format, pkcs1_verify,
+    rsa_prv_crypt, rsa_pub_crypt,
 };
-use crate::crypto::sha::{ExCryptHmacSha, ExCryptSha};
-use crate::crypto::{ExCryptBnQw_SwapDwQwLeBe, ExCryptMemDiff};
+use crate::sha::{ExCryptHmacSha, ExCryptSha};
+use crate::{ExCryptBnQw_SwapDwQwLeBe, ExCryptMemDiff};
 use std::collections::HashMap;
 use std::io::{Read, Seek, SeekFrom};
 use std::sync::{LazyLock, Mutex};
@@ -436,14 +438,29 @@ pub unsafe extern "C" fn ExKeysQwNeRsaPrvCrypt(key_idx: u32, input: *const u64, 
     if key_ptr.is_null() {
         return 0;
     }
-    ExCryptBnQwNeRsaPrvCrypt(input, output, key_ptr as *const ExCryptRsa)
+    let key = &*(key_ptr as *const ExCryptRsaPrv1024);
+    let num_digits = key.rsa.num_digits.swap_bytes() as usize;
+    let input_slice = std::slice::from_raw_parts(input, num_digits);
+    let output_slice = std::slice::from_raw_parts_mut(output, num_digits);
+    
+    match rsa_prv_crypt(input_slice, key) {
+        Ok(result) => {
+            output_slice.copy_from_slice(&result[..num_digits.min(result.len())]);
+            1
+        }
+        Err(_) => 0,
+    }
 }
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn ExKeysConsolePrivateKeySign(hash: *const u8, output_cert_sig: *mut u8) -> i32 {
     let mut sig_buf = [0u64; 0x10];
-    ExCryptBnDwLePkcs1Format(hash, 0, sig_buf.as_mut_ptr() as *mut u8, 0x10 * 8);
+    let hash_slice = std::slice::from_raw_parts(hash, 20);
+    let sig_bytes = std::slice::from_raw_parts_mut(sig_buf.as_mut_ptr() as *mut u8, 0x10 * 8);
+    if pkcs1_format(hash_slice, 0, sig_bytes).is_err() {
+        return 0;
+    }
     ExCryptBnQw_SwapDwQwLeBe(sig_buf.as_ptr(), sig_buf.as_mut_ptr(), 0x10);
     if ExKeysQwNeRsaPrvCrypt(0x33, sig_buf.as_ptr(), sig_buf.as_mut_ptr()) == 0 {
         return 0;
@@ -462,12 +479,30 @@ pub unsafe extern "C" fn ExKeysPkcs1Verify(hash: *const u8, input_sig: *const u8
     if modulus_size > 0x200 {
         return 0;
     }
+    
     ExCryptBnQw_SwapDwQwLeBe(input_sig as *const u64, temp_sig.as_mut_ptr(), key_digits);
-    if ExCryptBnQwNeRsaPubCrypt(temp_sig.as_ptr(), temp_sig.as_mut_ptr(), key) == 0 {
-        return 0;
+    
+    // Get modulus from key and perform raw RSA
+    let key_pub = &*(key as *const ExCryptRsaPub1024);
+    let temp_sig_slice = std::slice::from_raw_parts(temp_sig.as_ptr(), key_digits as usize);
+    
+    match rsa_pub_crypt(temp_sig_slice, key_pub) {
+        Ok(result) => {
+            let result_len = result.len().min(temp_sig.len());
+            temp_sig[..result_len].copy_from_slice(&result[..result_len]);
+        }
+        Err(_) => return 0,
     }
+    
     ExCryptBnQw_SwapDwQwLeBe(temp_sig.as_ptr(), temp_sig.as_mut_ptr(), key_digits);
-    ExCryptBnDwLePkcs1Verify(hash, temp_sig.as_ptr() as *const u8, modulus_size)
+    
+    let hash_slice = std::slice::from_raw_parts(hash, 20);
+    let sig_bytes = std::slice::from_raw_parts(temp_sig.as_ptr() as *const u8, modulus_size as usize);
+    if pkcs1_verify(hash_slice, sig_bytes) {
+        1
+    } else {
+        0
+    }
 }
 
 #[no_mangle]
