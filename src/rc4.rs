@@ -30,7 +30,6 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-use super::{ffi_slice, ffi_slice_mut};
 use super::{CryptoError, Result};
 
 #[repr(C)]
@@ -88,29 +87,3 @@ impl Rc4 {
     }
 }
 
-#[no_mangle]
-#[allow(non_snake_case)]
-pub unsafe extern "C" fn ExCryptRc4Key(state: *mut ExCryptRc4State, key: *const u8, key_size: u32) {
-    let Some(state) = state.as_mut() else {
-        return;
-    };
-    let _ = rc4_key(state, ffi_slice(key, key_size));
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-pub unsafe extern "C" fn ExCryptRc4Ecb(state: *mut ExCryptRc4State, buf: *mut u8, buf_size: u32) {
-    let Some(state) = state.as_mut() else {
-        return;
-    };
-    rc4_crypt(state, ffi_slice_mut(buf, buf_size));
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-pub unsafe extern "C" fn ExCryptRc4(key: *const u8, key_size: u32, buf: *mut u8, buf_size: u32) {
-    let mut state = ExCryptRc4State { s: [0; 256], i: 0, j: 0 };
-    if rc4_key(&mut state, ffi_slice(key, key_size)).is_ok() {
-        rc4_crypt(&mut state, ffi_slice_mut(buf, buf_size));
-    }
-}

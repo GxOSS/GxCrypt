@@ -38,3 +38,6 @@ byteorder = "1.5.0"
 sha1 = "0.10"
 rsa = "0.9.10"
 xecrypt = { path = "./crates/xecrypt" }
+
+[dev-dependencies]
+rand = "0.8"

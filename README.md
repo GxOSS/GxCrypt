@@ -2,8 +2,8 @@
 
 Rust Crypto for GxBuild
 
-Uses [XeCrypt]() by landaire
+Wraps [XeCrypt]() by landaire and implements RC4 and RSA
 
-RC4 and RSA based on [ExCrypt]() by emoose
+Based on [ExCrypt]() by emoose
 
 By erorn and ExposureMG

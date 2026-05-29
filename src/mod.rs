@@ -41,6 +41,8 @@ pub use rc4::Rc4;
 pub use rsa::{ExCryptRsa, ExCryptRsaPrv1024, ExCryptRsaPub1024, ExCryptRsaPub2048};
 pub use rsa::{rsa_prv_crypt, rsa_pub_crypt, pkcs1_format, pkcs1_verify, sign_pkcs1v15_sha1, verify_pkcs1v15_sha1};
 pub use sha::{calculate_smc_hash, hmac_sha, rot_sum_sha, sha};
+pub use keys::{XeKey, load_keyvault, load_keyvault_from_path, keyvault_loaded};
+pub use keys::{get_console_private_key, get_key_bytes, set_key, console_sign, verify_signature};
 
 pub type Result<T> = std::result::Result<T, CryptoError>;
 
@@ -52,53 +54,12 @@ pub enum CryptoError {
     InvalidDataSize,
     #[error("Buffer too small")]
     BufferTooSmall,
-    #[error("FFI call failed")]
-    FfiError,
 }
 
-pub unsafe fn ffi_slice<'a>(ptr: *const u8, len: u32) -> &'a [u8] {
-    if ptr.is_null() || len == 0 {
-        &[]
-    } else {
-        std::slice::from_raw_parts(ptr, len as usize)
-    }
-}
-
-pub unsafe fn ffi_slice_mut<'a>(ptr: *mut u8, len: u32) -> &'a mut [u8] {
-    if ptr.is_null() || len == 0 {
-        &mut []
-    } else {
-        std::slice::from_raw_parts_mut(ptr, len as usize)
-    }
-}
-
-/// Swap dword/qword endianness (LE <-> BE)
-#[no_mangle]
-#[allow(non_snake_case)]
-pub unsafe extern "C" fn ExCryptBnQw_SwapDwQwLeBe(source: *const u64, dest: *mut u64, num_qwords: u32) {
-    if source.is_null() || dest.is_null() {
-        return;
-    }
-    let src = std::slice::from_raw_parts(source, num_qwords as usize);
-    let dst = std::slice::from_raw_parts_mut(dest, num_qwords as usize);
-    for i in 0..num_qwords as usize {
+/// Swap qword endianness (LE <-> BE)
+pub fn swap_qw_endian(src: &[u64], dst: &mut [u64]) {
+    let len = src.len().min(dst.len());
+    for i in 0..len {
         dst[i] = src[i].swap_bytes();
     }
-}
-
-/// Compare two memory regions and return 0 if equal, non-zero if different
-/// Used for constant-time comparison to avoid timing attacks
-#[no_mangle]
-#[allow(non_snake_case)]
-pub unsafe extern "C" fn ExCryptMemDiff(buf1: *const u8, buf2: *const u8, size: u32) -> i32 {
-    if buf1.is_null() || buf2.is_null() || size == 0 {
-        return 0;
-    }
-    let a = std::slice::from_raw_parts(buf1, size as usize);
-    let b = std::slice::from_raw_parts(buf2, size as usize);
-    let mut diff = 0u8;
-    for i in 0..size as usize {
-        diff |= a[i] ^ b[i];
-    }
-    diff as i32
 }
