@@ -46,6 +46,7 @@ pub use rsa::{
 };
 pub use rsa::{ExCryptRsa, ExCryptRsaPrv1024, ExCryptRsaPub1024, ExCryptRsaPub2048};
 pub use sha::{calculate_smc_hash, hmac_sha, rot_sum_sha, sha};
+pub use xecrypt::keyvault;
 
 pub type Result<T> = std::result::Result<T, CryptoError>;
 
