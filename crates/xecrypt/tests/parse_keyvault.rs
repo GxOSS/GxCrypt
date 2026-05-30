@@ -50,16 +50,34 @@ mod zerocopy {
         assert_eq!(kv_ref.dvd_key(), kv_owned.dvd_key());
         assert_eq!(kv_ref.game_region(), kv_owned.game_region());
         assert_eq!(*kv_ref.console_id(), *kv_owned.console_id());
-        assert_eq!(kv_ref.console_certificate.console_part_number, kv_owned.console_certificate.console_part_number);
+        assert_eq!(
+            kv_ref.console_certificate.console_part_number,
+            kv_owned.console_certificate.console_part_number
+        );
         assert_eq!(kv_ref.console_type(), *kv_owned.console_type());
         assert_eq!(kv_ref.is_devkit(), kv_owned.is_devkit());
         assert_eq!(kv_ref.is_retail(), kv_owned.is_retail());
         assert_eq!(kv_ref.revision(), kv_owned.revision());
-        assert_eq!(kv_ref.keys.console_private_key, kv_owned.keys.console_private_key.as_slice());
-        assert_eq!(kv_ref.keys.xeika_private_key, kv_owned.keys.xeika_private_key.as_slice());
-        assert_eq!(kv_ref.keys.cardea_private_key, kv_owned.keys.cardea_private_key.as_slice());
-        assert_eq!(kv_ref.config.manufacturing_mode, kv_owned.config.manufacturing_mode);
-        assert_eq!(kv_ref.config.restricted_privileges, kv_owned.config.restricted_privileges);
+        assert_eq!(
+            kv_ref.keys.console_private_key,
+            kv_owned.keys.console_private_key.as_slice()
+        );
+        assert_eq!(
+            kv_ref.keys.xeika_private_key,
+            kv_owned.keys.xeika_private_key.as_slice()
+        );
+        assert_eq!(
+            kv_ref.keys.cardea_private_key,
+            kv_owned.keys.cardea_private_key.as_slice()
+        );
+        assert_eq!(
+            kv_ref.config.manufacturing_mode,
+            kv_owned.config.manufacturing_mode
+        );
+        assert_eq!(
+            kv_ref.config.restricted_privileges,
+            kv_owned.config.restricted_privileges
+        );
     }
 
     #[test]

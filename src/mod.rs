@@ -37,12 +37,15 @@ pub mod rsa;
 pub mod sha;
 
 // Re-exports for convenient access
+pub use keys::{console_sign, get_console_private_key, get_key_bytes, set_key, verify_signature};
+pub use keys::{keyvault_loaded, load_keyvault, load_keyvault_from_path, XeKey};
 pub use rc4::Rc4;
+pub use rsa::{
+    pkcs1_format, pkcs1_verify, rsa_prv_crypt, rsa_pub_crypt, sign_pkcs1v15_sha1,
+    verify_pkcs1v15_sha1,
+};
 pub use rsa::{ExCryptRsa, ExCryptRsaPrv1024, ExCryptRsaPub1024, ExCryptRsaPub2048};
-pub use rsa::{rsa_prv_crypt, rsa_pub_crypt, pkcs1_format, pkcs1_verify, sign_pkcs1v15_sha1, verify_pkcs1v15_sha1};
 pub use sha::{calculate_smc_hash, hmac_sha, rot_sum_sha, sha};
-pub use keys::{XeKey, load_keyvault, load_keyvault_from_path, keyvault_loaded};
-pub use keys::{get_console_private_key, get_key_bytes, set_key, console_sign, verify_signature};
 
 pub type Result<T> = std::result::Result<T, CryptoError>;
 

@@ -45,7 +45,10 @@ pub struct Rc4 {
 
 fn rc4_key(state: &mut ExCryptRc4State, key: &[u8]) -> Result<()> {
     if key.is_empty() {
-        return Err(CryptoError::InvalidKeySize { expected: 1, got: 0 });
+        return Err(CryptoError::InvalidKeySize {
+            expected: 1,
+            got: 0,
+        });
     }
 
     state.i = 0;
@@ -76,7 +79,11 @@ fn rc4_crypt(state: &mut ExCryptRc4State, data: &mut [u8]) {
 
 impl Rc4 {
     pub fn new(key: &[u8]) -> Result<Self> {
-        let mut state = ExCryptRc4State { s: [0; 256], i: 0, j: 0 };
+        let mut state = ExCryptRc4State {
+            s: [0; 256],
+            i: 0,
+            j: 0,
+        };
         rc4_key(&mut state, key)?;
         Ok(Self { state })
     }
@@ -86,4 +93,3 @@ impl Rc4 {
         Ok(())
     }
 }
-

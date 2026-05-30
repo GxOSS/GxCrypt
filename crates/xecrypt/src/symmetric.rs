@@ -54,7 +54,11 @@ pub fn xe_crypt_rot_sum_sha(data1: &[u8], data2: &[u8]) -> [u8; 20] {
     hasher.update(data1);
     hasher.update(data2);
 
-    let inv_bytes: Vec<u8> = rot.iter().map(|q| !q).flat_map(|q| q.to_be_bytes()).collect();
+    let inv_bytes: Vec<u8> = rot
+        .iter()
+        .map(|q| !q)
+        .flat_map(|q| q.to_be_bytes())
+        .collect();
     hasher.update(&inv_bytes);
     hasher.update(&inv_bytes);
 

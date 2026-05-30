@@ -117,7 +117,10 @@ pub enum XContentKeyMaterial {
 }
 
 impl XContentKeyMaterial {
-    pub fn parse(cursor: &mut Cursor<&[u8]>, signature_type: XContentSignatureType) -> std::io::Result<Self> {
+    pub fn parse(
+        cursor: &mut Cursor<&[u8]>,
+        signature_type: XContentSignatureType,
+    ) -> std::io::Result<Self> {
         let start_pos = cursor.position();
         let result = if signature_type == XContentSignatureType::Console {
             Self::Certificate(Certificate::parse(cursor)?)
@@ -162,7 +165,13 @@ impl Certificate {
 
         let mut date_gen_raw = [0u8; DATE_GENERATION_SIZE];
         cursor.read_exact(&mut date_gen_raw)?;
-        let date_generation = String::from_utf8_lossy(&date_gen_raw[..date_gen_raw.iter().position(|b| *b == 0).unwrap_or(date_gen_raw.len())]).into_owned();
+        let date_generation = String::from_utf8_lossy(
+            &date_gen_raw[..date_gen_raw
+                .iter()
+                .position(|b| *b == 0)
+                .unwrap_or(date_gen_raw.len())],
+        )
+        .into_owned();
 
         let public_exponent = cursor.read_u32::<BigEndian>()?;
         let mut public_modulus = vec![0u8; RSA_1024_MODULUS_SIZE];
@@ -233,15 +242,26 @@ impl RsaKeyKind {
             ConsoleKind::Devkit => match self {
                 RsaKeyKind::Executable | RsaKeyKind::Pirs => {
                     use crate::keys::devkit::xex::*;
-                    Ok(RsaPrivateKey::from_p_q(BigUint::from_slice_native(P.as_slice()), BigUint::from_slice_native(Q.as_slice()), PUB_EXPONENT.into())?)
+                    Ok(RsaPrivateKey::from_p_q(
+                        BigUint::from_slice_native(P.as_slice()),
+                        BigUint::from_slice_native(Q.as_slice()),
+                        PUB_EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::Live => {
                     use crate::keys::devkit::live::*;
-                    Ok(RsaPrivateKey::from_p_q(BigUint::from_slice_native(P.as_slice()), BigUint::from_slice_native(Q.as_slice()), PUB_EXPONENT.into())?)
+                    Ok(RsaPrivateKey::from_p_q(
+                        BigUint::from_slice_native(P.as_slice()),
+                        BigUint::from_slice_native(Q.as_slice()),
+                        PUB_EXPONENT.into(),
+                    )?)
                 }
-                RsaKeyKind::Console | RsaKeyKind::Dashboard | RsaKeyKind::Manufacturing | RsaKeyKind::Dvdx2 | RsaKeyKind::Xsm3 | RsaKeyKind::XMacs => {
-                    Err(crate::error::Error::NoPrivateKey(*self, console_kind))
-                }
+                RsaKeyKind::Console
+                | RsaKeyKind::Dashboard
+                | RsaKeyKind::Manufacturing
+                | RsaKeyKind::Dvdx2
+                | RsaKeyKind::Xsm3
+                | RsaKeyKind::XMacs => Err(crate::error::Error::NoPrivateKey(*self, console_kind)),
             },
             ConsoleKind::Retail => match self {
                 RsaKeyKind::Executable
@@ -252,7 +272,10 @@ impl RsaKeyKind {
                 | RsaKeyKind::Manufacturing
                 | RsaKeyKind::Dvdx2
                 | RsaKeyKind::Xsm3
-                | RsaKeyKind::XMacs => Err(crate::error::Error::NoPrivateKey(*self, ConsoleKind::Retail)),
+                | RsaKeyKind::XMacs => Err(crate::error::Error::NoPrivateKey(
+                    *self,
+                    ConsoleKind::Retail,
+                )),
             },
         }
     }
@@ -260,56 +283,93 @@ impl RsaKeyKind {
     pub fn public_key(&self, console_kind: ConsoleKind) -> Result<RsaPublicKey, crate::Error> {
         match console_kind {
             ConsoleKind::Devkit => match self {
-                RsaKeyKind::Executable | RsaKeyKind::Pirs | RsaKeyKind::Live => Ok(self.private_key(console_kind)?.to_public_key()),
+                RsaKeyKind::Executable | RsaKeyKind::Pirs | RsaKeyKind::Live => {
+                    Ok(self.private_key(console_kind)?.to_public_key())
+                }
                 RsaKeyKind::Dashboard => {
                     use crate::keys::dashboard::*;
-                    Ok(RsaPublicKey::new(BigUint::from_slice_native(MODULUS.as_slice()), EXPONENT.into())?)
+                    Ok(RsaPublicKey::new(
+                        BigUint::from_slice_native(MODULUS.as_slice()),
+                        EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::Manufacturing => {
                     use crate::keys::manufacturing::*;
-                    Ok(RsaPublicKey::new(BigUint::from_slice_native(MODULUS.as_slice()), EXPONENT.into())?)
+                    Ok(RsaPublicKey::new(
+                        BigUint::from_slice_native(MODULUS.as_slice()),
+                        EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::Xsm3 => {
                     use crate::keys::xsm3::*;
-                    Ok(RsaPublicKey::new(BigUint::from_slice_native(MODULUS.as_slice()), EXPONENT.into())?)
+                    Ok(RsaPublicKey::new(
+                        BigUint::from_slice_native(MODULUS.as_slice()),
+                        EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::Console | RsaKeyKind::Dvdx2 | RsaKeyKind::XMacs => todo!(),
             },
             ConsoleKind::Retail => match self {
                 RsaKeyKind::Executable | RsaKeyKind::Pirs => {
                     use crate::keys::retail::pirs::*;
-                    Ok(RsaPublicKey::new(BigUint::from_slice_native(MODULUS.as_slice()), EXPONENT.into())?)
+                    Ok(RsaPublicKey::new(
+                        BigUint::from_slice_native(MODULUS.as_slice()),
+                        EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::Live => {
                     use crate::keys::retail::live::*;
-                    Ok(RsaPublicKey::new(BigUint::from_slice_native(MODULUS.as_slice()), PUB_EXPONENT.into())?)
+                    Ok(RsaPublicKey::new(
+                        BigUint::from_slice_native(MODULUS.as_slice()),
+                        PUB_EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::Console => {
                     use crate::keys::retail::console::*;
-                    Ok(RsaPublicKey::new(BigUint::from_slice_native(MODULUS.as_slice()), EXPONENT.into())?)
+                    Ok(RsaPublicKey::new(
+                        BigUint::from_slice_native(MODULUS.as_slice()),
+                        EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::Dashboard => {
                     use crate::keys::dashboard::*;
-                    Ok(RsaPublicKey::new(BigUint::from_slice_native(MODULUS.as_slice()), EXPONENT.into())?)
+                    Ok(RsaPublicKey::new(
+                        BigUint::from_slice_native(MODULUS.as_slice()),
+                        EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::Manufacturing => {
                     use crate::keys::manufacturing::*;
-                    Ok(RsaPublicKey::new(BigUint::from_slice_native(MODULUS.as_slice()), EXPONENT.into())?)
+                    Ok(RsaPublicKey::new(
+                        BigUint::from_slice_native(MODULUS.as_slice()),
+                        EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::Dvdx2 => {
                     use crate::keys::retail::dvdx2::*;
-                    Ok(RsaPublicKey::new(BigUint::from_slice_native(MODULUS.as_slice()), PUB_EXPONENT.into())?)
+                    Ok(RsaPublicKey::new(
+                        BigUint::from_slice_native(MODULUS.as_slice()),
+                        PUB_EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::Xsm3 => {
                     use crate::keys::xsm3::*;
-                    Ok(RsaPublicKey::new(BigUint::from_slice_native(MODULUS.as_slice()), EXPONENT.into())?)
+                    Ok(RsaPublicKey::new(
+                        BigUint::from_slice_native(MODULUS.as_slice()),
+                        EXPONENT.into(),
+                    )?)
                 }
                 RsaKeyKind::XMacs => todo!(),
             },
         }
     }
 
-    pub fn verify_signature(&self, console_kind: ConsoleKind, sig: &[u8], hash: &[u8]) -> Result<(), crate::Error> {
+    pub fn verify_signature(
+        &self,
+        console_kind: ConsoleKind,
+        sig: &[u8],
+        hash: &[u8],
+    ) -> Result<(), crate::Error> {
         let key = self.public_key(console_kind)?;
         let scheme = pkcs1v15_sha1_scheme();
         let standard_signature = raw_signature_to_standard(sig);
@@ -340,17 +400,28 @@ pub enum ConsoleKind {
     Retail,
 }
 
-pub fn verify_xcontent_strong_signature(signature_kind: XContentSignatureType, signature: &[u8], hash: &[u8]) -> rsa::Result<ConsoleKind> {
+pub fn verify_xcontent_strong_signature(
+    signature_kind: XContentSignatureType,
+    signature: &[u8],
+    hash: &[u8],
+) -> rsa::Result<ConsoleKind> {
     let key_kind: RsaKeyKind = signature_kind.into();
     for console_kind in [ConsoleKind::Retail, ConsoleKind::Devkit] {
-        if key_kind.verify_signature(console_kind, signature, hash).is_ok() {
+        if key_kind
+            .verify_signature(console_kind, signature, hash)
+            .is_ok()
+        {
             return Ok(console_kind);
         }
     }
     Err(rsa::Error::Verification)
 }
 
-pub fn verify_xcontent_signature(signature_kind: XContentSignatureType, key_material: &XContentKeyMaterial, hash: &[u8]) -> Result<ConsoleKind, crate::Error> {
+pub fn verify_xcontent_signature(
+    signature_kind: XContentSignatureType,
+    key_material: &XContentKeyMaterial,
+    hash: &[u8],
+) -> Result<ConsoleKind, crate::Error> {
     let key_kind: RsaKeyKind = signature_kind.into();
     if key_kind == RsaKeyKind::Console {
         todo!()
@@ -361,15 +432,23 @@ pub fn verify_xcontent_signature(signature_kind: XContentSignatureType, key_mate
             }
         }
     } else {
-        panic!("Key material variant cannot satisfy signature kind {:?}", signature_kind);
+        panic!(
+            "Key material variant cannot satisfy signature kind {:?}",
+            signature_kind
+        );
     }
     Err(rsa::Error::Verification.into())
 }
 
 fn pkcs1v15_sha1_scheme() -> Pkcs1v15Sign {
     // SHA-1 AlgorithmIdentifier DER prefix for PKCS#1 v1.5 signatures
-    const SHA1_DER_PREFIX: &[u8] = &[0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03, 0x02, 0x1a, 0x05, 0x00, 0x04, 0x14];
-    Pkcs1v15Sign { hash_len: Some(SHA1_DIGEST_SIZE), prefix: SHA1_DER_PREFIX.into() }
+    const SHA1_DER_PREFIX: &[u8] = &[
+        0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03, 0x02, 0x1a, 0x05, 0x00, 0x04, 0x14,
+    ];
+    Pkcs1v15Sign {
+        hash_len: Some(SHA1_DIGEST_SIZE),
+        prefix: SHA1_DER_PREFIX.into(),
+    }
 }
 
 fn standard_signature_to_raw(sig: &[u8]) -> Vec<u8> {
@@ -389,20 +468,30 @@ mod tests {
 
     fn known_devkit_live_sig() -> (&'static [u8], [u8; 20]) {
         const SIG_RAW: [u8; 0x100] = [
-            0x65u8, 0x0B, 0x89, 0xAB, 0xAC, 0x11, 0x6A, 0xBE, 0x5C, 0x8E, 0xF3, 0xAC, 0xF3, 0x37, 0x07, 0x40, 0xB3, 0x31, 0x3F, 0xE2, 0x42, 0xE4, 0x95, 0x54, 0xBE, 0xD0,
-            0x7E, 0x54, 0x7E, 0xFD, 0xBB, 0x13, 0x95, 0xFB, 0x7F, 0xAB, 0x41, 0xEE, 0x76, 0x26, 0x94, 0xDA, 0xAF, 0x1E, 0x68, 0xDE, 0xAC, 0xAD, 0x8D, 0x49, 0xD6, 0xC3,
-            0xF5, 0x1F, 0x0F, 0xD7, 0x03, 0x97, 0x9C, 0x40, 0x96, 0xC7, 0xF6, 0xE8, 0x3E, 0x69, 0x2A, 0x25, 0x26, 0x10, 0xD4, 0x8D, 0x68, 0x3F, 0xCD, 0x68, 0x01, 0x83,
-            0xC4, 0xF2, 0xF0, 0x00, 0xC2, 0x03, 0x68, 0xE9, 0x5D, 0x76, 0x2A, 0x03, 0xA4, 0xFE, 0xEF, 0xF8, 0xBD, 0xC7, 0x5A, 0xB9, 0x68, 0x88, 0x1C, 0x93, 0x7B, 0x95,
-            0xAB, 0x0F, 0xA0, 0x1E, 0xFB, 0x3B, 0x0D, 0x69, 0x70, 0x2F, 0x12, 0x22, 0x27, 0x7A, 0x15, 0x9A, 0xB1, 0x22, 0x9A, 0x79, 0xC8, 0xEB, 0x08, 0xF3, 0xB0, 0x19,
-            0x13, 0x53, 0x41, 0xE3, 0xD0, 0xD2, 0xCE, 0x8B, 0xCD, 0xBF, 0xEB, 0xE2, 0x0A, 0x58, 0x44, 0xAA, 0x08, 0x76, 0x96, 0xCA, 0xA6, 0x8B, 0x05, 0x6D, 0x70, 0xBA,
-            0xE5, 0xC2, 0xBA, 0x1A, 0x4C, 0x1A, 0xE4, 0xD3, 0x45, 0xE2, 0x74, 0xFB, 0x2D, 0x1A, 0xB5, 0x54, 0xA9, 0xBD, 0x44, 0x63, 0xA4, 0x55, 0xDF, 0x0F, 0x03, 0x14,
-            0x14, 0xC8, 0x6F, 0x26, 0x5D, 0x85, 0x9C, 0x26, 0x60, 0x81, 0x45, 0xCC, 0x3B, 0x29, 0x14, 0xCE, 0xC7, 0xA7, 0x81, 0x77, 0x4F, 0x11, 0x0E, 0xB5, 0xAD, 0x78,
-            0x06, 0x34, 0x7E, 0x3B, 0x21, 0x77, 0x1F, 0xF7, 0x92, 0x3D, 0xC0, 0xE5, 0x1A, 0xB5, 0xA9, 0x4F, 0x7C, 0xA8, 0x39, 0x14, 0x64, 0x86, 0x16, 0x4E, 0xC5, 0x80,
-            0x66, 0x3A, 0x8D, 0x6C, 0x1A, 0x51, 0x3A, 0x4A, 0xCD, 0xBD, 0x8D, 0xA9, 0x63, 0xFC, 0xD2, 0xDD, 0x41, 0xA1, 0xD3, 0x04, 0x82, 0x96,
+            0x65u8, 0x0B, 0x89, 0xAB, 0xAC, 0x11, 0x6A, 0xBE, 0x5C, 0x8E, 0xF3, 0xAC, 0xF3, 0x37,
+            0x07, 0x40, 0xB3, 0x31, 0x3F, 0xE2, 0x42, 0xE4, 0x95, 0x54, 0xBE, 0xD0, 0x7E, 0x54,
+            0x7E, 0xFD, 0xBB, 0x13, 0x95, 0xFB, 0x7F, 0xAB, 0x41, 0xEE, 0x76, 0x26, 0x94, 0xDA,
+            0xAF, 0x1E, 0x68, 0xDE, 0xAC, 0xAD, 0x8D, 0x49, 0xD6, 0xC3, 0xF5, 0x1F, 0x0F, 0xD7,
+            0x03, 0x97, 0x9C, 0x40, 0x96, 0xC7, 0xF6, 0xE8, 0x3E, 0x69, 0x2A, 0x25, 0x26, 0x10,
+            0xD4, 0x8D, 0x68, 0x3F, 0xCD, 0x68, 0x01, 0x83, 0xC4, 0xF2, 0xF0, 0x00, 0xC2, 0x03,
+            0x68, 0xE9, 0x5D, 0x76, 0x2A, 0x03, 0xA4, 0xFE, 0xEF, 0xF8, 0xBD, 0xC7, 0x5A, 0xB9,
+            0x68, 0x88, 0x1C, 0x93, 0x7B, 0x95, 0xAB, 0x0F, 0xA0, 0x1E, 0xFB, 0x3B, 0x0D, 0x69,
+            0x70, 0x2F, 0x12, 0x22, 0x27, 0x7A, 0x15, 0x9A, 0xB1, 0x22, 0x9A, 0x79, 0xC8, 0xEB,
+            0x08, 0xF3, 0xB0, 0x19, 0x13, 0x53, 0x41, 0xE3, 0xD0, 0xD2, 0xCE, 0x8B, 0xCD, 0xBF,
+            0xEB, 0xE2, 0x0A, 0x58, 0x44, 0xAA, 0x08, 0x76, 0x96, 0xCA, 0xA6, 0x8B, 0x05, 0x6D,
+            0x70, 0xBA, 0xE5, 0xC2, 0xBA, 0x1A, 0x4C, 0x1A, 0xE4, 0xD3, 0x45, 0xE2, 0x74, 0xFB,
+            0x2D, 0x1A, 0xB5, 0x54, 0xA9, 0xBD, 0x44, 0x63, 0xA4, 0x55, 0xDF, 0x0F, 0x03, 0x14,
+            0x14, 0xC8, 0x6F, 0x26, 0x5D, 0x85, 0x9C, 0x26, 0x60, 0x81, 0x45, 0xCC, 0x3B, 0x29,
+            0x14, 0xCE, 0xC7, 0xA7, 0x81, 0x77, 0x4F, 0x11, 0x0E, 0xB5, 0xAD, 0x78, 0x06, 0x34,
+            0x7E, 0x3B, 0x21, 0x77, 0x1F, 0xF7, 0x92, 0x3D, 0xC0, 0xE5, 0x1A, 0xB5, 0xA9, 0x4F,
+            0x7C, 0xA8, 0x39, 0x14, 0x64, 0x86, 0x16, 0x4E, 0xC5, 0x80, 0x66, 0x3A, 0x8D, 0x6C,
+            0x1A, 0x51, 0x3A, 0x4A, 0xCD, 0xBD, 0x8D, 0xA9, 0x63, 0xFC, 0xD2, 0xDD, 0x41, 0xA1,
+            0xD3, 0x04, 0x82, 0x96,
         ];
 
         let hash = [
-            0xb6, 0x74, 0x4c, 0x85, 0x9a, 0xb7, 0x68, 0xcc, 0xea, 0x41, 0x65, 0x13, 0x2e, 0x0c, 0x9c, 0x7a, 0x3c, 0xa5, 0xdf, 0x2b,
+            0xb6, 0x74, 0x4c, 0x85, 0x9a, 0xb7, 0x68, 0xcc, 0xea, 0x41, 0x65, 0x13, 0x2e, 0x0c,
+            0x9c, 0x7a, 0x3c, 0xa5, 0xdf, 0x2b,
         ];
 
         (SIG_RAW.as_slice(), hash)
@@ -413,7 +502,8 @@ mod tests {
         let (sig, hash) = known_devkit_live_sig();
         assert_eq!(
             ConsoleKind::Devkit,
-            verify_xcontent_strong_signature(XContentSignatureType::Live, sig, hash.as_slice()).expect("failed to verify known devkit LIVE signature")
+            verify_xcontent_strong_signature(XContentSignatureType::Live, sig, hash.as_slice())
+                .expect("failed to verify known devkit LIVE signature")
         );
     }
 
@@ -421,20 +511,26 @@ mod tests {
     fn devkit_live_key_validates_known_sig() {
         let key = RsaKeyKind::Live;
         let (sig, hash) = known_devkit_live_sig();
-        key.verify_signature(ConsoleKind::Devkit, sig, &hash).expect("signature verification failed");
+        key.verify_signature(ConsoleKind::Devkit, sig, &hash)
+            .expect("signature verification failed");
     }
 
     #[test]
     fn verify_round_trip_signature_conversion_works() {
         let (sig, _) = known_devkit_live_sig();
-        assert_eq!(standard_signature_to_raw(raw_signature_to_standard(sig).as_slice()), sig);
+        assert_eq!(
+            standard_signature_to_raw(raw_signature_to_standard(sig).as_slice()),
+            sig
+        );
     }
 
     #[test]
     fn verify_signing_works() {
         let (sig, hash) = known_devkit_live_sig();
         let key = RsaKeyKind::Live;
-        let digest = key.sign(ConsoleKind::Devkit, &hash).expect("signing failed");
+        let digest = key
+            .sign(ConsoleKind::Devkit, &hash)
+            .expect("signing failed");
         assert_eq!(digest.as_slice(), sig);
     }
 }

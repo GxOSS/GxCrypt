@@ -36,9 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 use super::{CryptoError, Result};
 use crate::rsa::{
-    ExCryptRsa, ExCryptRsaPrv1024, ExCryptRsaPub1024,
-    pkcs1_format, pkcs1_verify,
-    rsa_prv_crypt, rsa_pub_crypt,
+    pkcs1_format, pkcs1_verify, rsa_prv_crypt, rsa_pub_crypt, ExCryptRsa, ExCryptRsaPrv1024,
+    ExCryptRsaPub1024,
 };
 use crate::swap_qw_endian;
 use std::collections::HashMap;
@@ -51,16 +50,14 @@ use std::sync::{LazyLock, Mutex};
 
 /// Load a keyvault from file path (safe Rust API)
 pub fn load_keyvault_from_path(path: &std::path::Path) -> Result<()> {
-    let mut file = std::fs::File::open(path)
-        .map_err(|_| CryptoError::InvalidDataSize)?;
-    let metadata = file.metadata()
-        .map_err(|_| CryptoError::InvalidDataSize)?;
+    let mut file = std::fs::File::open(path).map_err(|_| CryptoError::InvalidDataSize)?;
+    let metadata = file.metadata().map_err(|_| CryptoError::InvalidDataSize)?;
     let mut filesize = metadata.len() as usize;
-    
+
     if filesize < 0x3FF0 {
         return Err(CryptoError::InvalidDataSize);
     }
-    
+
     let mut contents = Vec::new();
     if filesize >= 0x4000 {
         file.seek(SeekFrom::Start(0x10))
@@ -70,7 +67,7 @@ pub fn load_keyvault_from_path(path: &std::path::Path) -> Result<()> {
     contents.resize(filesize, 0);
     file.read_exact(&mut contents)
         .map_err(|_| CryptoError::InvalidDataSize)?;
-    
+
     {
         let mut vault = EX_KEY_VAULT.lock().unwrap();
         *vault = contents;
@@ -105,9 +102,7 @@ pub fn get_console_private_key() -> Option<ExCryptRsaPrv1024> {
         return None;
     }
     // SAFETY: We're reading from a valid byte slice with correct size
-    let key = unsafe {
-        std::ptr::read_unaligned(key_data.as_ptr() as *const ExCryptRsaPrv1024)
-    };
+    let key = unsafe { std::ptr::read_unaligned(key_data.as_ptr() as *const ExCryptRsaPrv1024) };
     Some(key)
 }
 
@@ -117,51 +112,53 @@ pub fn get_key_bytes(key: XeKey) -> Option<Vec<u8>> {
     if !is_key_supported(key_idx) {
         return None;
     }
-    
+
     {
         let imported = EX_IMPORTED_KEYS.lock().unwrap();
         if let Some(key_data) = imported.get(&key_idx) {
             return Some(key_data.clone());
         }
     }
-    
+
     let vault = EX_KEY_VAULT.lock().unwrap();
     if vault.is_empty() {
         return None;
     }
-    
+
     let (offset, size) = key_properties(key_idx)?;
     Some(vault[offset as usize..offset as usize + size as usize].to_vec())
 }
 
 /// Set/import a key (safe Rust API)
 pub fn set_key(key: XeKey, data: &[u8]) {
-    EX_IMPORTED_KEYS.lock().unwrap().insert(key as u32, data.to_vec());
+    EX_IMPORTED_KEYS
+        .lock()
+        .unwrap()
+        .insert(key as u32, data.to_vec());
 }
 
 /// Sign data with console private key (safe Rust API)
 pub fn console_sign(hash: &[u8; 20]) -> Option<[u8; 128]> {
     let private_key = get_console_private_key()?;
-    
+
     // Format PKCS1v1.5 signature block
     let mut sig_buf = [0u64; 0x10];
-    let sig_bytes = unsafe {
-        std::slice::from_raw_parts_mut(sig_buf.as_mut_ptr() as *mut u8, 0x10 * 8)
-    };
+    let sig_bytes =
+        unsafe { std::slice::from_raw_parts_mut(sig_buf.as_mut_ptr() as *mut u8, 0x10 * 8) };
     pkcs1_format(hash, 0, sig_bytes).ok()?;
-    
+
     // Byteswap for RSA operation
     let mut swapped = [0u64; 0x10];
     swap_qw_endian(&sig_buf, &mut swapped);
-    
+
     // Perform RSA private key operation
     let result = rsa_prv_crypt(&swapped, &private_key).ok()?;
-    
+
     // Copy result back and byteswap output
     let mut output_buf = [0u64; 0x10];
     output_buf[..result.len().min(0x10)].copy_from_slice(&result[..result.len().min(0x10)]);
     swap_qw_endian(&output_buf, &mut sig_buf);
-    
+
     // Return as bytes
     let mut output = [0u8; 128];
     output.copy_from_slice(sig_bytes);
@@ -172,34 +169,33 @@ pub fn console_sign(hash: &[u8; 20]) -> Option<[u8; 128]> {
 pub fn verify_signature(hash: &[u8; 20], signature: &[u8], key: &ExCryptRsaPub1024) -> bool {
     let key_digits = key.rsa.num_digits.swap_bytes();
     let modulus_size = (key_digits * 8) as usize;
-    
+
     if modulus_size > 0x200 || signature.len() < modulus_size {
         return false;
     }
-    
+
     // Convert signature to qwords (byteswap)
     let sig_qwords: &[u64] = unsafe {
         std::slice::from_raw_parts(signature.as_ptr() as *const u64, key_digits as usize)
     };
     let mut temp_sig = vec![0u64; key_digits as usize];
     swap_qw_endian(sig_qwords, &mut temp_sig);
-    
+
     // RSA public decrypt
     let result = match rsa_pub_crypt(&temp_sig, key) {
         Ok(r) => r,
         Err(_) => return false,
     };
-    
+
     // Copy result back and byteswap
     let result_len = result.len().min(temp_sig.len());
     let mut output_buf = vec![0u64; key_digits as usize];
     output_buf[..result_len].copy_from_slice(&result[..result_len]);
     swap_qw_endian(&output_buf, &mut temp_sig);
-    
+
     // Verify PKCS1v1.5 format
-    let sig_bytes = unsafe {
-        std::slice::from_raw_parts(temp_sig.as_ptr() as *const u8, modulus_size)
-    };
+    let sig_bytes =
+        unsafe { std::slice::from_raw_parts(temp_sig.as_ptr() as *const u8, modulus_size) };
     pkcs1_verify(hash, sig_bytes)
 }
 
@@ -270,11 +266,16 @@ pub enum XeKey {
     ConstantMasterKey = 0x3C,
 }
 
-static EX_IMPORTED_KEYS: LazyLock<Mutex<HashMap<u32, Vec<u8>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+static EX_IMPORTED_KEYS: LazyLock<Mutex<HashMap<u32, Vec<u8>>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
 static EX_KEY_VAULT: Mutex<Vec<u8>> = Mutex::new(Vec::new());
 
-const K_ROAMABLE_OBFUSCATION_KEY_RETAIL: [u8; 16] = [0xE1, 0xBC, 0x15, 0x9C, 0x73, 0xB1, 0xEA, 0xE9, 0xAB, 0x31, 0x70, 0xF3, 0xAD, 0x47, 0xEB, 0xF3];
-const K_ROAMABLE_OBFUSCATION_KEY_DEVKIT: [u8; 16] = [0xDA, 0xB6, 0x9A, 0xD9, 0x8E, 0x28, 0x76, 0x4F, 0x97, 0x7E, 0xE2, 0x48, 0x7E, 0x4F, 0x3F, 0x68];
+const K_ROAMABLE_OBFUSCATION_KEY_RETAIL: [u8; 16] = [
+    0xE1, 0xBC, 0x15, 0x9C, 0x73, 0xB1, 0xEA, 0xE9, 0xAB, 0x31, 0x70, 0xF3, 0xAD, 0x47, 0xEB, 0xF3,
+];
+const K_ROAMABLE_OBFUSCATION_KEY_DEVKIT: [u8; 16] = [
+    0xDA, 0xB6, 0x9A, 0xD9, 0x8E, 0x28, 0x76, 0x4F, 0x97, 0x7E, 0xE2, 0x48, 0x7E, 0x4F, 0x3F, 0x68,
+];
 
 fn key_properties(key_idx: u32) -> Option<(u32, u32)> {
     match key_idx {
@@ -437,7 +438,12 @@ fn ex_keys_get_console_type() -> u32 {
         return 0;
     }
     let cert_offset = offset + 0x18;
-    u32::from_be_bytes([vault[cert_offset], vault[cert_offset + 1], vault[cert_offset + 2], vault[cert_offset + 3]])
+    u32::from_be_bytes([
+        vault[cert_offset],
+        vault[cert_offset + 1],
+        vault[cert_offset + 2],
+        vault[cert_offset + 3],
+    ])
 }
 
 // --- Idiomatic KeyManager ---

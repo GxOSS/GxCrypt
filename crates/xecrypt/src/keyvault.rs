@@ -464,7 +464,10 @@ impl KeyVault {
 
     fn parse_inner(data: &[u8]) -> Result<Self, KeyVaultError> {
         if data.len() != KEYVAULT_SIZE_FULL && data.len() != KEYVAULT_SIZE_TRUNCATED {
-            return Err(KeyVaultError::InvalidSize { expected: KEYVAULT_SIZE_FULL, got: data.len() });
+            return Err(KeyVaultError::InvalidSize {
+                expected: KEYVAULT_SIZE_FULL,
+                got: data.len(),
+            });
         }
 
         let header = KeyVaultHeader::parse(data)?;
@@ -479,7 +482,14 @@ impl KeyVault {
         let cardea_end = std::cmp::min(offsets::CARDEA_CERTIFICATE.end, kv.len());
         let cardea_certificate = kv[offsets::CARDEA_CERTIFICATE.start..cardea_end].to_vec();
 
-        Ok(KeyVault { header, config, keys, console_certificate, xeika_certificate, cardea_certificate })
+        Ok(KeyVault {
+            header,
+            config,
+            keys,
+            console_certificate,
+            xeika_certificate,
+            cardea_certificate,
+        })
     }
 
     pub fn console_id(&self) -> &xenon_types::ConsoleId {
@@ -574,7 +584,10 @@ pub struct ConsoleCertificateRef<'a> {
 impl<'a> KeyVaultRef<'a> {
     pub fn parse(data: &'a [u8]) -> Result<Self, KeyVaultError> {
         if data.len() != KEYVAULT_SIZE_FULL && data.len() != KEYVAULT_SIZE_TRUNCATED {
-            return Err(KeyVaultError::InvalidSize { expected: KEYVAULT_SIZE_FULL, got: data.len() });
+            return Err(KeyVaultError::InvalidSize {
+                expected: KEYVAULT_SIZE_FULL,
+                got: data.len(),
+            });
         }
 
         let kv = &data[DATA_START..];
@@ -582,14 +595,24 @@ impl<'a> KeyVaultRef<'a> {
         let config = KeyVaultConfig::parse(kv)?;
 
         let serial_raw = &kv[offsets::CONSOLE_SERIAL];
-        let serial_end = serial_raw.iter().position(|b| *b == 0).unwrap_or(serial_raw.len());
+        let serial_end = serial_raw
+            .iter()
+            .position(|b| *b == 0)
+            .unwrap_or(serial_raw.len());
         let console_serial_number =
-            std::str::from_utf8(&serial_raw[..serial_end]).map_err(|_| KeyVaultError::InvalidSize { expected: KEYVAULT_SIZE_FULL, got: data.len() })?;
+            std::str::from_utf8(&serial_raw[..serial_end]).map_err(|_| {
+                KeyVaultError::InvalidSize {
+                    expected: KEYVAULT_SIZE_FULL,
+                    got: data.len(),
+                }
+            })?;
 
         let keys = KeyVaultKeysRef {
             console_serial_number,
             mobo_serial_number: kv[offsets::MOBO_SERIAL].try_into().unwrap(),
-            game_region: xenon_types::GameRegion::from_bits_retain(u16::from_be_bytes(kv[offsets::GAME_REGION].try_into().unwrap()) as u32),
+            game_region: xenon_types::GameRegion::from_bits_retain(u16::from_be_bytes(
+                kv[offsets::GAME_REGION].try_into().unwrap(),
+            ) as u32),
             console_obfuscation_key: kv[offsets::CONSOLE_OBFUSCATION_KEY].try_into().unwrap(),
             key_obfuscation_key: kv[offsets::KEY_OBFUSCATION_KEY].try_into().unwrap(),
             roamable_obfuscation_key: kv[offsets::ROAMABLE_OBFUSCATION_KEY].try_into().unwrap(),
@@ -598,14 +621,26 @@ impl<'a> KeyVaultRef<'a> {
             secondary_activation_key: kv[offsets::SECONDARY_ACTIVATION_KEY].try_into().unwrap(),
             global_device_2des_key1: kv[offsets::GLOBAL_DEVICE_2DES_KEY1].try_into().unwrap(),
             global_device_2des_key2: kv[offsets::GLOBAL_DEVICE_2DES_KEY2].try_into().unwrap(),
-            wireless_controller_ms_2des_key1: kv[offsets::WIRELESS_CONTROLLER_MS_2DES_KEY1].try_into().unwrap(),
-            wireless_controller_ms_2des_key2: kv[offsets::WIRELESS_CONTROLLER_MS_2DES_KEY2].try_into().unwrap(),
+            wireless_controller_ms_2des_key1: kv[offsets::WIRELESS_CONTROLLER_MS_2DES_KEY1]
+                .try_into()
+                .unwrap(),
+            wireless_controller_ms_2des_key2: kv[offsets::WIRELESS_CONTROLLER_MS_2DES_KEY2]
+                .try_into()
+                .unwrap(),
             wired_webcam_ms_2des_key: kv[offsets::WIRED_WEBCAM_MS_2DES_KEY].try_into().unwrap(),
-            wired_controller_ms_2des_key: kv[offsets::WIRED_CONTROLLER_MS_2DES_KEY].try_into().unwrap(),
+            wired_controller_ms_2des_key: kv[offsets::WIRED_CONTROLLER_MS_2DES_KEY]
+                .try_into()
+                .unwrap(),
             memory_unit_ms_2des_key: kv[offsets::MEMORY_UNIT_MS_2DES_KEY].try_into().unwrap(),
-            other_xsm3_device_ms_2des_key: kv[offsets::OTHER_XSM3_DEVICE_MS_2DES_KEY].try_into().unwrap(),
-            wireless_controller_2des_key1: kv[offsets::WIRELESS_CONTROLLER_2DES_KEY1].try_into().unwrap(),
-            wireless_controller_2des_key2: kv[offsets::WIRELESS_CONTROLLER_2DES_KEY2].try_into().unwrap(),
+            other_xsm3_device_ms_2des_key: kv[offsets::OTHER_XSM3_DEVICE_MS_2DES_KEY]
+                .try_into()
+                .unwrap(),
+            wireless_controller_2des_key1: kv[offsets::WIRELESS_CONTROLLER_2DES_KEY1]
+                .try_into()
+                .unwrap(),
+            wireless_controller_2des_key2: kv[offsets::WIRELESS_CONTROLLER_2DES_KEY2]
+                .try_into()
+                .unwrap(),
             wired_webcam_2des_key: kv[offsets::WIRED_WEBCAM_2DES_KEY].try_into().unwrap(),
             wired_controller_2des_key: kv[offsets::WIRED_CONTROLLER_2DES_KEY].try_into().unwrap(),
             memory_unit_2des_key: kv[offsets::MEMORY_UNIT_2DES_KEY].try_into().unwrap(),
@@ -620,14 +655,21 @@ impl<'a> KeyVaultRef<'a> {
         let pn_raw = &cert[offsets::CERT_PART_NUMBER];
         let pn_end = pn_raw.iter().position(|b| *b == 0).unwrap_or(pn_raw.len());
         let date_raw = &cert[offsets::CERT_MFG_DATE];
-        let date_end = date_raw.iter().position(|b| *b == 0).unwrap_or(date_raw.len());
+        let date_end = date_raw
+            .iter()
+            .position(|b| *b == 0)
+            .unwrap_or(date_raw.len());
 
         let console_certificate = ConsoleCertificateRef {
             cert_size,
             console_id: xenon_types::ConsoleId(cert[offsets::CERT_CONSOLE_ID].try_into().unwrap()),
             console_part_number: std::str::from_utf8(&pn_raw[..pn_end]).unwrap_or(""),
-            privileges: CertificatePrivileges::from_bits_retain(u32::from_be_bytes(cert[offsets::CERT_PRIVILEGES].try_into().unwrap())),
-            console_type: ConsoleType(u32::from_be_bytes(cert[offsets::CERT_CONSOLE_TYPE].try_into().unwrap())),
+            privileges: CertificatePrivileges::from_bits_retain(u32::from_be_bytes(
+                cert[offsets::CERT_PRIVILEGES].try_into().unwrap(),
+            )),
+            console_type: ConsoleType(u32::from_be_bytes(
+                cert[offsets::CERT_CONSOLE_TYPE].try_into().unwrap(),
+            )),
             manufacturing_date: std::str::from_utf8(&date_raw[..date_end]).unwrap_or(""),
         };
 
@@ -647,7 +689,10 @@ impl<'a> KeyVaultRef<'a> {
 
     pub fn into_owned(self) -> KeyVault {
         KeyVault {
-            header: KeyVaultHeader { hmac_sha_hash: *self.hmac_sha_hash, confounder: *self.confounder },
+            header: KeyVaultHeader {
+                hmac_sha_hash: *self.hmac_sha_hash,
+                confounder: *self.confounder,
+            },
             config: self.config,
             keys: KeyVaultKeys {
                 console_serial_number: self.keys.console_serial_number.to_owned(),
@@ -765,7 +810,10 @@ impl KeyVaultHeader {
         hmac_sha_hash.copy_from_slice(&data[offsets::HMAC_SHA_HASH]);
         let mut confounder = [0u8; 0x10];
         confounder.copy_from_slice(&data[offsets::CONFOUNDER]);
-        Ok(KeyVaultHeader { hmac_sha_hash, confounder })
+        Ok(KeyVaultHeader {
+            hmac_sha_hash,
+            confounder,
+        })
     }
 }
 
@@ -782,7 +830,8 @@ impl KeyVaultConfig {
         let policy_flash_size = c.read_u32::<BigEndian>()?;
         let policy_builtin_usbmu_size = c.read_u32::<BigEndian>()?;
         let reserved_dword4 = c.read_u32::<BigEndian>()?;
-        let restricted_privileges = RestrictedPrivileges::from_bits_retain(c.read_u64::<BigEndian>()?);
+        let restricted_privileges =
+            RestrictedPrivileges::from_bits_retain(c.read_u64::<BigEndian>()?);
 
         fn read_qword(c: &mut Cursor<&[u8]>) -> Result<u64, std::io::Error> {
             c.read_u64::<BigEndian>()
@@ -827,10 +876,15 @@ impl KeyVaultKeys {
         }
 
         let serial_raw = &data[offsets::CONSOLE_SERIAL];
-        let serial_end = serial_raw.iter().position(|b| *b == 0).unwrap_or(serial_raw.len());
+        let serial_end = serial_raw
+            .iter()
+            .position(|b| *b == 0)
+            .unwrap_or(serial_raw.len());
         let console_serial_number = String::from_utf8_lossy(&serial_raw[..serial_end]).into_owned();
 
-        let game_region = xenon_types::GameRegion::from_bits_retain(u16::from_be_bytes(data[offsets::GAME_REGION].try_into().unwrap()) as u32);
+        let game_region = xenon_types::GameRegion::from_bits_retain(u16::from_be_bytes(
+            data[offsets::GAME_REGION].try_into().unwrap(),
+        ) as u32);
 
         Ok(KeyVaultKeys {
             console_serial_number,
@@ -844,8 +898,14 @@ impl KeyVaultKeys {
             secondary_activation_key: read_range(data, offsets::SECONDARY_ACTIVATION_KEY),
             global_device_2des_key1: read_range(data, offsets::GLOBAL_DEVICE_2DES_KEY1),
             global_device_2des_key2: read_range(data, offsets::GLOBAL_DEVICE_2DES_KEY2),
-            wireless_controller_ms_2des_key1: read_range(data, offsets::WIRELESS_CONTROLLER_MS_2DES_KEY1),
-            wireless_controller_ms_2des_key2: read_range(data, offsets::WIRELESS_CONTROLLER_MS_2DES_KEY2),
+            wireless_controller_ms_2des_key1: read_range(
+                data,
+                offsets::WIRELESS_CONTROLLER_MS_2DES_KEY1,
+            ),
+            wireless_controller_ms_2des_key2: read_range(
+                data,
+                offsets::WIRELESS_CONTROLLER_MS_2DES_KEY2,
+            ),
             wired_webcam_ms_2des_key: read_range(data, offsets::WIRED_WEBCAM_MS_2DES_KEY),
             wired_controller_ms_2des_key: read_range(data, offsets::WIRED_CONTROLLER_MS_2DES_KEY),
             memory_unit_ms_2des_key: read_range(data, offsets::MEMORY_UNIT_MS_2DES_KEY),
@@ -873,7 +933,10 @@ impl ConsoleCertificate {
 
         let mut part_number = [0u8; 0x0B];
         c.read_exact(&mut part_number)?;
-        let pn_end = part_number.iter().position(|b| *b == 0).unwrap_or(part_number.len());
+        let pn_end = part_number
+            .iter()
+            .position(|b| *b == 0)
+            .unwrap_or(part_number.len());
         let console_part_number = String::from_utf8_lossy(&part_number[..pn_end]).into_owned();
 
         let privileges = CertificatePrivileges::from_bits_retain(c.read_u32::<BigEndian>()?);
@@ -881,9 +944,19 @@ impl ConsoleCertificate {
 
         let mut date_raw = [0u8; 0x08];
         c.read_exact(&mut date_raw)?;
-        let date_end = date_raw.iter().position(|b| *b == 0).unwrap_or(date_raw.len());
+        let date_end = date_raw
+            .iter()
+            .position(|b| *b == 0)
+            .unwrap_or(date_raw.len());
         let manufacturing_date = String::from_utf8_lossy(&date_raw[..date_end]).into_owned();
 
-        Ok(ConsoleCertificate { cert_size, console_id, console_part_number, privileges, console_type, manufacturing_date })
+        Ok(ConsoleCertificate {
+            cert_size,
+            console_id,
+            console_part_number,
+            privileges,
+            console_type,
+            manufacturing_date,
+        })
     }
 }
