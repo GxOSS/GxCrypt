@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 set(GXCRYPT_SOURCES
     "src/excrypt_aes.c"
     "src/excrypt_bn_key.cpp"
