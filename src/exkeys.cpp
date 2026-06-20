@@ -1,8 +1,21 @@
 #include "excrypt.h"
 
+#include <algorithm>
+#include <cstdio>
+#include <cstring>
 #include <map>
 #include <memory>
 #include <vector>
+
+#ifndef _WIN32
+inline int fopen_s(FILE** pFile, const char* filename, const char* mode) {
+    if (!pFile)
+        return -1;
+    *pFile = fopen(filename, mode);
+    return (*pFile != nullptr) ? 0 : -1;
+}
+#define sprintf_s(buf, size, fmt, ...) snprintf(buf, size, fmt, ##__VA_ARGS__)
+#endif
 
 std::map<uint32_t, std::tuple<uint32_t, uint32_t>> kExKeyProperties = {
     {XEKEY_MANUFACTURING_MODE, {0x8, 0x1}},
