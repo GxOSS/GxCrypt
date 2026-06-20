@@ -2,17 +2,15 @@
 // RotSum functions
 // these aren't exported by kernel, but do get used by some bootloaders, & inside XeCrypt internally
 
-typedef struct _EXCRYPT_ROTSUM_STATE
-{
-  uint64_t data[4];
+typedef struct _EXCRYPT_ROTSUM_STATE {
+    uint64_t data[4];
 } EXCRYPT_ROTSUM_STATE;
 #ifdef __cplusplus
 static_assert(sizeof(EXCRYPT_ROTSUM_STATE) == 0x20, "sizeof(EXCRYPT_ROTSUM_STATE) != 0x20");
 #endif
 
-typedef struct _EXCRYPT_ROTSUM4_STATE
-{
-  uint64_t data[2];
+typedef struct _EXCRYPT_ROTSUM4_STATE {
+    uint64_t data[2];
 } EXCRYPT_ROTSUM4_STATE;
 #ifdef __cplusplus
 static_assert(sizeof(EXCRYPT_ROTSUM4_STATE) == 0x10, "sizeof(EXCRYPT_ROTSUM4_STATE) != 0x10");

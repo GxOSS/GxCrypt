@@ -1,10 +1,9 @@
 #pragma once
 
-typedef struct _EXCRYPT_RC4_STATE
-{
-  uint8_t S[256];
-  uint8_t i;
-  uint8_t j;
+typedef struct _EXCRYPT_RC4_STATE {
+    uint8_t S[256];
+    uint8_t i;
+    uint8_t j;
 } EXCRYPT_RC4_STATE;
 #ifdef __cplusplus
 static_assert(sizeof(EXCRYPT_RC4_STATE) == 0x102, "sizeof(EXCRYPT_RC4_STATE) != 0x160");

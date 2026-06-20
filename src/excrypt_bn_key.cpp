@@ -1,58 +1,57 @@
-#include <string.h>
-#include <stdlib.h>
-
 #include "excrypt.h"
 
-void ExCryptBn_BeToLeKey(EXCRYPT_RSA* key, const uint8_t* input, uint32_t input_size)
-{
-  key->num_digits = _byteswap_ulong(*(uint32_t*)input);
-  input += 4;
+#include <stdlib.h>
+#include <string.h>
 
-  int input_size_mul = key->num_digits / 0x10;
+void ExCryptBn_BeToLeKey(EXCRYPT_RSA* key, const uint8_t* input, uint32_t input_size) {
+    key->num_digits = _byteswap_ulong(*(uint32_t*) input);
+    input += 4;
 
-  key->pub_exponent = _byteswap_ulong(*(uint32_t*)input);
-  input += 4;
+    int input_size_mul = key->num_digits / 0x10;
 
-  key->reserved = _byteswap_uint64(*(uint64_t*)input);
-  input += 8;
+    key->pub_exponent = _byteswap_ulong(*(uint32_t*) input);
+    input += 4;
 
-  if (input_size <= 0x10)
-    return;
+    key->reserved = _byteswap_uint64(*(uint64_t*) input);
+    input += 8;
 
-  EXCRYPT_RSAPUB_1024* key_pub = (EXCRYPT_RSAPUB_1024*)key;
-  ExCryptBnQw_SwapDwQwLeBe((uint64_t*)input, key_pub->modulus, key->num_digits);
+    if (input_size <= 0x10)
+        return;
 
-  uint32_t modulus_size = input_size_mul * 0x80;
-  input += modulus_size;
+    EXCRYPT_RSAPUB_1024* key_pub = (EXCRYPT_RSAPUB_1024*) key;
+    ExCryptBnQw_SwapDwQwLeBe((uint64_t*) input, key_pub->modulus, key->num_digits);
 
-  if (input_size <= (modulus_size + 0x10))
-    return;
+    uint32_t modulus_size = input_size_mul * 0x80;
+    input += modulus_size;
 
-  auto* key_prv = ((uint8_t*)key_pub) + 0x10 + modulus_size;
-  int prv_size = input_size_mul * 0x40;
+    if (input_size <= (modulus_size + 0x10))
+        return;
 
-  // P
-  ExCryptBnQw_SwapDwQwLeBe((uint64_t*)input, (uint64_t*)key_prv, prv_size / 8);
-  input += prv_size;
-  key_prv += prv_size;
+    auto* key_prv = ((uint8_t*) key_pub) + 0x10 + modulus_size;
+    int prv_size = input_size_mul * 0x40;
 
-  // Q
-  ExCryptBnQw_SwapDwQwLeBe((uint64_t*)input, (uint64_t*)key_prv, prv_size / 8);
-  input += prv_size;
-  key_prv += prv_size;
+    // P
+    ExCryptBnQw_SwapDwQwLeBe((uint64_t*) input, (uint64_t*) key_prv, prv_size / 8);
+    input += prv_size;
+    key_prv += prv_size;
 
-  // DP
-  ExCryptBnQw_SwapDwQwLeBe((uint64_t*)input, (uint64_t*)key_prv, prv_size / 8);
-  input += prv_size;
-  key_prv += prv_size;
+    // Q
+    ExCryptBnQw_SwapDwQwLeBe((uint64_t*) input, (uint64_t*) key_prv, prv_size / 8);
+    input += prv_size;
+    key_prv += prv_size;
 
-  // DQ
-  ExCryptBnQw_SwapDwQwLeBe((uint64_t*)input, (uint64_t*)key_prv, prv_size / 8);
-  input += prv_size;
-  key_prv += prv_size;
+    // DP
+    ExCryptBnQw_SwapDwQwLeBe((uint64_t*) input, (uint64_t*) key_prv, prv_size / 8);
+    input += prv_size;
+    key_prv += prv_size;
 
-  // CR
-  ExCryptBnQw_SwapDwQwLeBe((uint64_t*)input, (uint64_t*)key_prv, prv_size / 8);
-  input += prv_size;
-  key_prv += prv_size;
+    // DQ
+    ExCryptBnQw_SwapDwQwLeBe((uint64_t*) input, (uint64_t*) key_prv, prv_size / 8);
+    input += prv_size;
+    key_prv += prv_size;
+
+    // CR
+    ExCryptBnQw_SwapDwQwLeBe((uint64_t*) input, (uint64_t*) key_prv, prv_size / 8);
+    input += prv_size;
+    key_prv += prv_size;
 }
