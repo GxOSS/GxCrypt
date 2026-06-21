@@ -29,22 +29,22 @@ set(GXCRYPT_SOURCES
 )
 
 set(GXCRYPT_HEADERS
-    "src/excrypt_aes.h"
-    "src/excrypt_bn.h"
-    "src/excrypt_des_data.h"
-    "src/excrypt_des.h"
-    "src/excrypt_ecc.h"
-    "src/excrypt_md5.h"
-    "src/excrypt_mem.h"
-    "src/excrypt_parve.h"
-    "src/excrypt_rc4.h"
-    "src/excrypt_rotsum.h"
-    "src/excrypt_sha.h"
-    "src/excrypt_sha2.h"
-    "src/excrypt.h"
-    "src/exkeys.h"
-    "src/fp61.hpp"
-    "src/rijndael.h"
+    "include/excrypt_aes.h"
+    "include/excrypt_bn.h"
+    "include/excrypt_des_data.h"
+    "include/excrypt_des.h"
+    "include/excrypt_ecc.h"
+    "include/excrypt_md5.h"
+    "include/excrypt_mem.h"
+    "include/excrypt_parve.h"
+    "include/excrypt_rc4.h"
+    "include/excrypt_rotsum.h"
+    "include/excrypt_sha.h"
+    "include/excrypt_sha2.h"
+    "include/excrypt.h"
+    "include/exkeys.h"
+    "include/fp61.hpp"
+    "include/rijndael.h"
 )
 
 add_library(GxCrypt STATIC 
@@ -52,7 +52,12 @@ add_library(GxCrypt STATIC
     ${GXCRYPT_HEADERS}
 )
 
-target_include_directories(GxCrypt PUBLIC "src")
+target_include_directories(GxCrypt
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 
 if(WIN32)
     target_link_libraries(GxCrypt PRIVATE bcrypt)
