@@ -1,3 +1,17 @@
+# GxCrypt
+
+Specialized fork of ExCrypt designed for GxOSS.
+
+Aims to be fully cross platform (Windows and Linux x86)
+
+## Changelog:
+
+- Switch from MSBuild / Visual Studio to CMake
+- Shim Windows-only code
+- Format Codebase
+
+Original README:
+```markdown
 # ExCrypt
 
 ExCrypt is an open-source drop-in replacement for the XeCrypt suite of functions used by the Xbox 360.
@@ -27,3 +41,4 @@ Some effort to make the code a bit more readable, rather than just a straight as
 We only target x86 & x64 - maybe other platforms in the future, but for now there's not much use in supporting anything else.
 
 Where possible, making use of existing, well-known crypto code is always preferrable to needing to write your own (unless some XeCrypt oddity somehow prevents it, that is)
+```
