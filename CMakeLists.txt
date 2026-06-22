@@ -61,5 +61,5 @@ target_include_directories(GxCrypt
 if(WIN32)
     target_link_libraries(GxCrypt PRIVATE bcrypt)
 else()
-    target_compile_options(GxCrypt PRIVATE -maes -msse4.1 -Wno-implicit-function-declaration)
+    target_compile_options(GxCrypt PRIVATE -maes -msse4.1)
 endif()
