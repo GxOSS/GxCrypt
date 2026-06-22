@@ -70,7 +70,6 @@ on big-endian systems and for his assistance with corrections
 #include "excrypt.h"
 
 #include <string.h> /* for memcpy() etc.        */
-#include <stdlib.h>
 
 #if defined(_MSC_VER) && (_MSC_VER > 800)
 #pragma intrinsic(memcpy)
