@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
-project(GxCrypt CXX)
+project(GxCrypt CXX C)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(GXCRYPT_SOURCES
@@ -47,7 +46,7 @@ set(GXCRYPT_HEADERS
     "include/rijndael.h"
 )
 
-add_library(GxCrypt STATIC 
+add_library(GxCrypt STATIC
     ${GXCRYPT_SOURCES}
     ${GXCRYPT_HEADERS}
 )
@@ -61,4 +60,6 @@ target_include_directories(GxCrypt
 
 if(WIN32)
     target_link_libraries(GxCrypt PRIVATE bcrypt)
+else()
+    target_compile_options(GxCrypt PRIVATE -maes -msse4.1 -Wno-implicit-function-declaration)
 endif()
